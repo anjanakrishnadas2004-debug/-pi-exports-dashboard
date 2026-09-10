@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PI Exports — Inventory Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root{
@@ -300,7 +299,7 @@
     <div class="brand">PI <span>EXPORTS</span></div>
     <div class="sub">INVENTORY CONTROL — LIVE VIEW</div>
   </div>
-  <div class="sub" id="lastload">no file loaded — showing sample data</div>
+  <div class="sub" id="lastload">Loading data…</div>
 </header>
 
 <div class="wrap">
@@ -312,8 +311,6 @@
     </div>
     <div class="filecontrols">
       <button class="btn" id="refreshBtn">Refresh data</button>
-      <label class="btn ghost" for="fileInput">Load file manually</label>
-      <input type="file" id="fileInput" accept=".xlsx,.xls">
       <button class="btn ghost" id="resetBtn">Reset filters</button>
     </div>
   </div>
@@ -400,40 +397,15 @@
   </div>
 
   <footer class="note">
-    Prototype layout for review — click "Load / Refresh File" and pick your MasterInventory .xlsx to preview with real data. Nothing is uploaded anywhere; the file is read in your browser only. Columns expected: Date, Sheet, Category, Product, Size, Quantity, SourceFile.
+    PI Exports — Inventory Dashboard. Data updates automatically from the source inventory file. Use "Refresh data" to pull the latest update.
   </footer>
 
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────
-// Paste your published Google Sheet CSV link here (see hosting instructions).
-// Leave blank ("") to keep manual file loading / sample data only.
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4ckJH8nkNz9Ro28ZuZMJ2WC5GbxCTQGbzJApPakad-f5IGZOI6zCg0UWy62NVCwhDI3V5oG8zKpS7/pub?gid=551030205&single=true&output=csv";
+// This dashboard loads live from the Google Sheet CSV link below.
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDd83YiQjFm70rbXQgaMzWH4eGlFZTucXkSc-wWZ3lAFVO0kYLyy6e3DS9YwzJlQ/pub?output=csv";
 // ─────────────────────────────────────────────────────────────────────────
-
-const SAMPLE = [
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","XS",18,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","S",37,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","M",9,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","L",4,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","XL",12,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","XXL",18,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","0/1",35,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","1/2",151,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","3/4",144,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","5/6",158,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","7/8",129,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-01-30","FELPE E T.S. RIGATE","FELPE COLLEGE","F. COLLEGE WITH BOTTON PATCH VENEZIA NAVY","9/10",153,"30 GENN 25 INVENTARIO (2).xlsx"],
-["2025-02-14","MAGLIE POLO","POLO CLASSIC","POLO PIQUET LOGO CHEST NAVY","S",44,"14 FEBB 25 INVENTARIO.xlsx"],
-["2025-02-14","MAGLIE POLO","POLO CLASSIC","POLO PIQUET LOGO CHEST NAVY","M",61,"14 FEBB 25 INVENTARIO.xlsx"],
-["2025-02-14","MAGLIE POLO","POLO CLASSIC","POLO PIQUET LOGO CHEST NAVY","L",39,"14 FEBB 25 INVENTARIO.xlsx"],
-["2025-02-14","MAGLIE POLO","POLO CLASSIC","POLO PIQUET LOGO CHEST WHITE","S",22,"14 FEBB 25 INVENTARIO.xlsx"],
-["2025-02-14","MAGLIE POLO","POLO CLASSIC","POLO PIQUET LOGO CHEST WHITE","M",30,"14 FEBB 25 INVENTARIO.xlsx"],
-["2025-03-05","PANTALONI","PANTALONE CARGO","CARGO PANT TECH FABRIC BLACK","30",19,"05 MAR 25 INVENTARIO.xlsx"],
-["2025-03-05","PANTALONI","PANTALONE CARGO","CARGO PANT TECH FABRIC BLACK","32",27,"05 MAR 25 INVENTARIO.xlsx"],
-["2025-03-05","PANTALONI","PANTALONE CARGO","CARGO PANT TECH FABRIC BLACK","34",15,"05 MAR 25 INVENTARIO.xlsx"]
-];
 
 let rows = []; // {date, sheet, category, product, size, qty, source}
 let sortKey = null, sortDir = 1;
@@ -593,7 +565,10 @@ function render(){
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No rows match this filter combination. Loosen a filter to see results.</div></td></tr>`;
     return;
   }
-  tbody.innerHTML = result.map(r=>`
+
+  const MAX_DISPLAY_ROWS = 500;
+  const toShow = result.slice(0, MAX_DISPLAY_ROWS);
+  let html = toShow.map(r=>`
     <tr>
       <td data-label="Date">${r.date}</td>
       <td data-label="Sheet">${r.sheet}</td>
@@ -604,6 +579,10 @@ function render(){
       <td data-label="Source File">${r.source}</td>
     </tr>
   `).join("");
+  if(result.length > MAX_DISPLAY_ROWS){
+    html += `<tr><td colspan="7"><div class="empty">Showing first ${MAX_DISPLAY_ROWS.toLocaleString()} of ${result.length.toLocaleString()} matching rows. The totals above (quantity, record count) already reflect ALL matching rows — narrow the filters further to see the full row list.</div></td></tr>`;
+  }
+  tbody.innerHTML = html;
 }
 
 function resetFilters(){
@@ -626,8 +605,7 @@ document.querySelectorAll("thead th").forEach(th=>{
   document.getElementById(id).addEventListener("change", render);
 });
 document.getElementById("refreshBtn").addEventListener("click", ()=>{
-  if(SHEET_CSV_URL){ loadFromCSVUrl(SHEET_CSV_URL); }
-  else { document.getElementById("lastload").textContent = "no live source configured — use Load file manually"; }
+  loadFromCSVUrl(SHEET_CSV_URL);
 });
 document.querySelectorAll('input[name="datemode"]').forEach(r=>{
   r.addEventListener("change", ()=>{ updateDateModeUI(); render(); });
@@ -635,49 +613,29 @@ document.querySelectorAll('input[name="datemode"]').forEach(r=>{
 document.getElementById("resetBtn").addEventListener("click", resetFilters);
 updateDateModeUI();
 
-document.getElementById("fileInput").addEventListener("change", (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt)=>{
-    const data = new Uint8Array(evt.target.result);
-    const wb = XLSX.read(data, {type:"array", cellDates:true});
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true});
-    const body = json.slice(1).filter(r=>r && r.length);
-    loadFromArray(body);
-    document.getElementById("lastload").textContent = `loaded: ${file.name} — ${new Date().toLocaleString()}`;
-    document.getElementById("rowmeta").textContent = `${rows.length.toLocaleString()} rows loaded`;
-    resetFilters();
-  };
-  reader.readAsArrayBuffer(file);
-});
-
 function loadFromCSVUrl(url){
-  document.getElementById("lastload").textContent = "loading live data…";
+  document.getElementById("lastload").textContent = "Loading data…";
   Papa.parse(url, {
     download: true,
     complete: function(results){
       const body = results.data.slice(1).filter(r=>r && r.length>1);
       loadFromArray(body);
-      document.getElementById("lastload").textContent = `live data — refreshed ${new Date().toLocaleString()}`;
+      document.getElementById("lastload").textContent = `Updated ${new Date().toLocaleString()}`;
       document.getElementById("rowmeta").textContent = `${rows.length.toLocaleString()} rows loaded`;
       resetFilters();
     },
     error: function(){
-      document.getElementById("lastload").textContent = "could not reach live data — showing sample";
+      document.getElementById("lastload").textContent = "Unable to load data — check your connection and try Refresh, or contact support.";
+      document.getElementById("rowmeta").textContent = "No data loaded";
+      rows = [];
+      render();
     }
   });
 }
 
 // init
-if(SHEET_CSV_URL){
-  loadFromCSVUrl(SHEET_CSV_URL);
-} else {
-  loadFromArray(SAMPLE);
-  document.getElementById("rowmeta").textContent = `${rows.length.toLocaleString()} sample rows — load your file to replace`;
-  render();
-}
+document.getElementById("lastload").textContent = "Loading data…";
+loadFromCSVUrl(SHEET_CSV_URL);
 
 </script>
 
