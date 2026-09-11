@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+.<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -124,6 +124,90 @@
     border-radius:var(--radius);
   }
   select:focus, input[type=date]:focus{outline:2px solid var(--rust);outline-offset:1px;}
+
+  .msel{position:relative;}
+  .msel-btn{
+    width:100%;
+    text-align:left;
+    padding:8px 30px 8px 9px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink);
+    border-radius:var(--radius);
+    cursor:pointer;
+    position:relative;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .msel-btn:after{
+    content:"▾";
+    position:absolute;
+    right:9px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--muted);
+  }
+  .msel-btn.active{border-color:var(--rust);color:var(--navy-deep);font-weight:600;}
+  .msel-panel{
+    display:none;
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    right:0;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    z-index:60;
+    max-height:260px;
+    overflow-y:auto;
+  }
+  .msel-panel.open{display:block;}
+  .msel-search{
+    width:100%;
+    border:none;
+    border-bottom:1px solid var(--line);
+    padding:8px 9px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    position:sticky;
+    top:0;
+    background:var(--panel);
+  }
+  .msel-search:focus{outline:none;}
+  .msel-actions{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 9px;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+  }
+  .msel-actions button{
+    background:none;
+    border:none;
+    color:var(--navy);
+    cursor:pointer;
+    text-decoration:underline;
+    padding:0;
+    font-family:inherit;
+    font-size:inherit;
+  }
+  .msel-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 9px;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .msel-item:hover{background:var(--paper);}
+  .msel-item input{accent-color:var(--rust);cursor:pointer;flex:none;}
+  .msel-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .msel-empty{padding:10px 9px;color:var(--muted);font-size:12px;}
 
   .datemode{
     display:flex;
@@ -318,23 +402,23 @@
   <div class="filters">
     <div class="field">
       <label>Source File</label>
-      <select id="f_source"><option value="">All files</option></select>
+      <div class="msel" id="msel_source"></div>
     </div>
     <div class="field">
       <label>Sheet / Tab</label>
-      <select id="f_sheet"><option value="">All sheets</option></select>
+      <div class="msel" id="msel_sheet"></div>
     </div>
     <div class="field">
       <label>Category</label>
-      <select id="f_category"><option value="">All categories</option></select>
+      <div class="msel" id="msel_category"></div>
     </div>
     <div class="field">
       <label>Product</label>
-      <select id="f_product"><option value="">All products</option></select>
+      <div class="msel" id="msel_product"></div>
     </div>
     <div class="field">
       <label>Size</label>
-      <select id="f_size"><option value="">All sizes</option></select>
+      <div class="msel" id="msel_size"></div>
     </div>
     <div class="field daterange" id="dateBlock">
       <div style="flex:1">
@@ -436,17 +520,94 @@ function normDate(v){
 
 function uniq(arr){ return [...new Set(arr.filter(Boolean))].sort(); }
 
-function populateSelect(id, values, current){
-  const sel = document.getElementById(id);
-  const keepFirst = sel.options[0];
-  sel.innerHTML = "";
-  sel.appendChild(keepFirst);
-  values.forEach(v=>{
-    const o = document.createElement("option");
-    o.value = v; o.textContent = v;
-    sel.appendChild(o);
+const FIELDS = [
+  {key:"source", label:"Source File", allLabel:"All files"},
+  {key:"sheet", label:"Sheet / Tab", allLabel:"All sheets"},
+  {key:"category", label:"Category", allLabel:"All categories"},
+  {key:"product", label:"Product", allLabel:"All products"},
+  {key:"size", label:"Size", allLabel:"All sizes"},
+];
+const selections = {source:new Set(), sheet:new Set(), category:new Set(), product:new Set(), size:new Set()};
+
+function buildMultiSelect(field){
+  const wrap = document.getElementById("msel_"+field.key);
+  wrap.innerHTML = `
+    <button type="button" class="msel-btn" id="msel_${field.key}_btn">${field.allLabel}</button>
+    <div class="msel-panel" id="msel_${field.key}_panel">
+      <input type="text" class="msel-search" placeholder="Search…" id="msel_${field.key}_search">
+      <div class="msel-actions">
+        <button type="button" id="msel_${field.key}_all">Select all</button>
+        <button type="button" id="msel_${field.key}_clear">Clear</button>
+      </div>
+      <div class="msel-list" id="msel_${field.key}_list"></div>
+    </div>
+  `;
+  const btn = document.getElementById(`msel_${field.key}_btn`);
+  const panel = document.getElementById(`msel_${field.key}_panel`);
+  btn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const wasOpen = panel.classList.contains("open");
+    document.querySelectorAll(".msel-panel.open").forEach(p=>p.classList.remove("open"));
+    if(!wasOpen) panel.classList.add("open");
   });
-  if(current && values.includes(current)) sel.value = current;
+  document.getElementById(`msel_${field.key}_search`).addEventListener("input", (e)=>{
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll(`#msel_${field.key}_list .msel-item`).forEach(item=>{
+      item.style.display = item.dataset.val.toLowerCase().includes(q) ? "flex" : "none";
+    });
+  });
+  document.getElementById(`msel_${field.key}_all`).addEventListener("click", ()=>{
+    document.querySelectorAll(`#msel_${field.key}_list .msel-item:not([style*="display: none"]) input`).forEach(cb=>{
+      cb.checked = true;
+      selections[field.key].add(cb.value);
+    });
+    render();
+  });
+  document.getElementById(`msel_${field.key}_clear`).addEventListener("click", ()=>{
+    selections[field.key].clear();
+    render();
+  });
+}
+FIELDS.forEach(buildMultiSelect);
+document.addEventListener("click", ()=>{
+  document.querySelectorAll(".msel-panel.open").forEach(p=>p.classList.remove("open"));
+});
+
+function populateMultiSelect(field, values){
+  const key = field.key;
+  const list = document.getElementById(`msel_${key}_list`);
+  const btn = document.getElementById(`msel_${key}_btn`);
+  const sel = selections[key];
+  // drop any selected values no longer available given other active filters
+  [...sel].forEach(v=>{ if(!values.includes(v)) sel.delete(v); });
+
+  if(values.length===0){
+    list.innerHTML = `<div class="msel-empty">No options available</div>`;
+  } else {
+    list.innerHTML = values.map(v=>`
+      <label class="msel-item" data-val="${v}">
+        <input type="checkbox" value="${v}" ${sel.has(v)?"checked":""}>
+        <span>${v}</span>
+      </label>
+    `).join("");
+    list.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        if(cb.checked) sel.add(cb.value); else sel.delete(cb.value);
+        render();
+      });
+    });
+  }
+
+  if(sel.size===0){
+    btn.textContent = field.allLabel;
+    btn.classList.remove("active");
+  } else if(sel.size===1){
+    btn.textContent = [...sel][0];
+    btn.classList.add("active");
+  } else {
+    btn.textContent = `${sel.size} selected`;
+    btn.classList.add("active");
+  }
 }
 
 function getDateMode(){
@@ -457,11 +618,11 @@ function getFilters(){
   const mode = getDateMode();
   const single = document.getElementById("f_datefrom").value;
   return {
-    source: document.getElementById("f_source").value,
-    sheet: document.getElementById("f_sheet").value,
-    category: document.getElementById("f_category").value,
-    product: document.getElementById("f_product").value,
-    size: document.getElementById("f_size").value,
+    source: [...selections.source],
+    sheet: [...selections.sheet],
+    category: [...selections.category],
+    product: [...selections.product],
+    size: [...selections.size],
     from: mode==="single" ? single : single,
     to: mode==="single" ? single : document.getElementById("f_dateto").value,
     mode: mode
@@ -483,11 +644,11 @@ function updateDateModeUI(){
 
 function applyFilters(rowset, f, except){
   return rowset.filter(r=>{
-    if(except!=="source" && f.source && r.source!==f.source) return false;
-    if(except!=="sheet" && f.sheet && r.sheet!==f.sheet) return false;
-    if(except!=="category" && f.category && r.category!==f.category) return false;
-    if(except!=="product" && f.product && r.product!==f.product) return false;
-    if(except!=="size" && f.size && r.size!==f.size) return false;
+    if(except!=="source" && f.source.length && !f.source.includes(r.source)) return false;
+    if(except!=="sheet" && f.sheet.length && !f.sheet.includes(r.sheet)) return false;
+    if(except!=="category" && f.category.length && !f.category.includes(r.category)) return false;
+    if(except!=="product" && f.product.length && !f.product.includes(r.product)) return false;
+    if(except!=="size" && f.size.length && !f.size.includes(r.size)) return false;
     if(f.from && r.date < f.from) return false;
     if(f.to && r.date > f.to) return false;
     return true;
@@ -496,35 +657,57 @@ function applyFilters(rowset, f, except){
 
 function refreshDropdowns(){
   const f = getFilters();
-  populateSelect("f_source", uniq(applyFilters(rows,f,"source").map(r=>r.source)), f.source);
-  populateSelect("f_sheet", uniq(applyFilters(rows,f,"sheet").map(r=>r.sheet)), f.sheet);
-  populateSelect("f_category", uniq(applyFilters(rows,f,"category").map(r=>r.category)), f.category);
-  populateSelect("f_product", uniq(applyFilters(rows,f,"product").map(r=>r.product)), f.product);
-  populateSelect("f_size", uniq(applyFilters(rows,f,"size").map(r=>r.size)), f.size);
+  FIELDS.forEach(field=>{
+    const available = applyFilters(rows, f, field.key);
+    populateMultiSelect(field, uniq(available.map(r=>r[field.key])));
+  });
 }
 
 function renderChips(f){
   const box = document.getElementById("activeChips");
   box.innerHTML = "";
-  const labels = {source:"File",sheet:"Sheet",category:"Category",product:"Product",size:"Size",from:"From",to:"To"};
+  const labels = {source:"File",sheet:"Sheet",category:"Category",product:"Product",size:"Size"};
   let any = false;
-  const entries = Object.entries(f).filter(([k])=>k!=="mode");
-  entries.forEach(([k,v])=>{
-    if(!v) return;
-    if(f.mode==="single" && k==="to") return; // avoid duplicate chip for single date
+
+  FIELDS.forEach(field=>{
+    f[field.key].forEach(v=>{
+      any = true;
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.innerHTML = `${labels[field.key]}: ${v} <button>×</button>`;
+      chip.querySelector("button").onclick = ()=>{
+        selections[field.key].delete(v);
+        render();
+      };
+      box.appendChild(chip);
+    });
+  });
+
+  if(f.from){
     any = true;
+    const label = f.mode==="single" ? "Date" : "From";
     const chip = document.createElement("span");
     chip.className = "chip";
-    const label = (f.mode==="single" && k==="from") ? "Date" : labels[k];
-    chip.innerHTML = `${label}: ${v} <button data-k="${k}">×</button>`;
+    chip.innerHTML = `${label}: ${f.from} <button>×</button>`;
     chip.querySelector("button").onclick = ()=>{
-      const idmap = {source:"f_source",sheet:"f_sheet",category:"f_category",product:"f_product",size:"f_size",from:"f_datefrom",to:"f_dateto"};
-      document.getElementById(idmap[k]).value = "";
-      if(k==="from" && f.mode==="single") document.getElementById("f_dateto").value = "";
+      document.getElementById("f_datefrom").value = "";
+      if(f.mode==="single") document.getElementById("f_dateto").value = "";
       render();
     };
     box.appendChild(chip);
-  });
+  }
+  if(f.mode==="range" && f.to){
+    any = true;
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `To: ${f.to} <button>×</button>`;
+    chip.querySelector("button").onclick = ()=>{
+      document.getElementById("f_dateto").value = "";
+      render();
+    };
+    box.appendChild(chip);
+  }
+
   if(any){
     const clear = document.createElement("button");
     clear.className = "clearall";
@@ -586,7 +769,8 @@ function render(){
 }
 
 function resetFilters(){
-  ["f_source","f_sheet","f_category","f_product","f_size","f_datefrom","f_dateto"].forEach(id=>document.getElementById(id).value="");
+  FIELDS.forEach(field=>selections[field.key].clear());
+  ["f_datefrom","f_dateto"].forEach(id=>document.getElementById(id).value="");
   document.querySelector('input[name="datemode"][value="single"]').checked = true;
   updateDateModeUI();
   sortKey = null;
@@ -601,7 +785,7 @@ document.querySelectorAll("thead th").forEach(th=>{
   });
 });
 
-["f_source","f_sheet","f_category","f_product","f_size","f_datefrom","f_dateto"].forEach(id=>{
+["f_datefrom","f_dateto"].forEach(id=>{
   document.getElementById(id).addEventListener("change", render);
 });
 document.getElementById("refreshBtn").addEventListener("click", ()=>{
