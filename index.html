@@ -567,6 +567,7 @@ function buildMultiSelect(field){
     selections[field.key].clear();
     render();
   });
+  panel.addEventListener("click", (e)=>{ e.stopPropagation(); });
 }
 FIELDS.forEach(buildMultiSelect);
 document.addEventListener("click", ()=>{
