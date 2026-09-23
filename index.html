@@ -134,11 +134,12 @@ tbody td::before{content:attr(data-label);font-family:'IBM Plex Mono',monospace;
 // File > Share > Publish to web > "Entire document" > CSV, then for each tab
 // copy its link (…/pub?gid=<TAB_GID>&single=true&output=csv) into this list.
 // Add a new entry whenever a new year tab appears.
-const TAB_SOURCES = [
-  // {label:"2025", url:"https://docs.google.com/spreadsheets/d/e/<PUBLISH_ID>/pub?gid=<GID_2025>&single=true&output=csv"},
-  // {label:"2026", url:"https://docs.google.com/spreadsheets/d/e/<PUBLISH_ID>/pub?gid=<GID_2026>&single=true&output=csv"},
-  {label:"Old link (replace me)", url:"https://docs.google.com/spreadsheets/d/e/2PACX-1vTDd83YiQjFm70rbXQgaMzWH4eGlFZTucXkSc-wWZ3lAFVO0kYLyy6e3DS9YwzJlQ/pub?output=csv"},
-];
+const SHEET_ID = "1CzeFsFeaJNwmhJH2KBy4_yP_9nTRsbsWBmjk0SvZ95Y";
+const YEAR_TABS = ["2025", "2026"];   // add "2027" etc. when a new year tab appears
+const TAB_SOURCES = YEAR_TABS.map(y => ({
+  label: y,
+  url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(y)}`
+}));
 
 let rows = [];          // {date, year, sheet, category, product, size, so, qty, source}
 let sizeRank = {};      // size -> SizeOrder (from column H)
