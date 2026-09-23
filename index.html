@@ -1,4 +1,4 @@
-.<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6,528 +6,184 @@
 <title>PI Exports — Inventory Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  :root{
-    --ink:#151a24;
-    --paper:#f6f4ee;
-    --panel:#ffffff;
-    --line:#dfdac9;
-    --navy:#1f3a5f;
-    --navy-deep:#12233b;
-    --rust:#a8582f;
-    --muted:#6b7280;
-    --ok:#2f6b4f;
-    --radius:2px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Iowan Old Style','Georgia',serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  .mono{font-family:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;}
-
-  header.top{
-    background:var(--navy-deep);
-    color:#f1ede0;
-    padding:18px 28px;
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    border-bottom:3px solid var(--rust);
-  }
-  header.top .brand{
-    font-size:20px;
-    letter-spacing:0.02em;
-    font-weight:600;
-  }
-  header.top .brand span{color:#c98a63;}
-  header.top .sub{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:#9aa7b8;
-  }
-
-  .wrap{max-width:1200px;margin:0 auto;padding:22px 24px 60px;}
-
-  .toolbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    flex-wrap:wrap;
-    gap:14px;
-    margin-bottom:18px;
-    border-bottom:1px solid var(--line);
-    padding-bottom:14px;
-  }
-  .toolbar h1{
-    font-size:26px;
-    margin:0 0 4px;
-    font-weight:500;
-  }
-  .toolbar .meta{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--muted);
-  }
-  .filecontrols{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-  }
-  .btn{
-    background:var(--navy);
-    color:#fff;
-    border:none;
-    padding:9px 16px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    cursor:pointer;
-    border-radius:var(--radius);
-    letter-spacing:0.02em;
-  }
-  .btn:hover{background:var(--navy-deep);}
-  .btn.ghost{
-    background:transparent;
-    color:var(--navy);
-    border:1px solid var(--navy);
-  }
-  input[type=file]{display:none;}
-
-  .filters{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:12px;
-    margin-bottom:16px;
-  }
-  .filters .daterange{grid-column:span 2;display:flex;gap:8px;}
-  .field label{
-    display:block;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10px;
-    text-transform:uppercase;
-    letter-spacing:0.08em;
-    color:var(--muted);
-    margin-bottom:5px;
-  }
-  select, input[type=date]{
-    width:100%;
-    padding:8px 9px;
-    border:1px solid var(--line);
-    background:var(--panel);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--ink);
-    border-radius:var(--radius);
-  }
-  select:focus, input[type=date]:focus{outline:2px solid var(--rust);outline-offset:1px;}
-
-  .msel{position:relative;}
-  .msel-btn{
-    width:100%;
-    text-align:left;
-    padding:8px 30px 8px 9px;
-    border:1px solid var(--line);
-    background:var(--panel);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--ink);
-    border-radius:var(--radius);
-    cursor:pointer;
-    position:relative;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .msel-btn:after{
-    content:"▾";
-    position:absolute;
-    right:9px;
-    top:50%;
-    transform:translateY(-50%);
-    color:var(--muted);
-  }
-  .msel-btn.active{border-color:var(--rust);color:var(--navy-deep);font-weight:600;}
-  .msel-panel{
-    display:none;
-    position:absolute;
-    top:calc(100% + 4px);
-    left:0;
-    right:0;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    box-shadow:0 6px 18px rgba(0,0,0,0.12);
-    z-index:60;
-    max-height:260px;
-    overflow-y:auto;
-  }
-  .msel-panel.open{display:block;}
-  .msel-search{
-    width:100%;
-    border:none;
-    border-bottom:1px solid var(--line);
-    padding:8px 9px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    position:sticky;
-    top:0;
-    background:var(--panel);
-  }
-  .msel-search:focus{outline:none;}
-  .msel-actions{
-    display:flex;
-    justify-content:space-between;
-    padding:6px 9px;
-    border-bottom:1px solid var(--line);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-  }
-  .msel-actions button{
-    background:none;
-    border:none;
-    color:var(--navy);
-    cursor:pointer;
-    text-decoration:underline;
-    padding:0;
-    font-family:inherit;
-    font-size:inherit;
-  }
-  .msel-item{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:7px 9px;
-    font-size:12.5px;
-    cursor:pointer;
-  }
-  .msel-item:hover{background:var(--paper);}
-  .msel-item input{accent-color:var(--rust);cursor:pointer;flex:none;}
-  .msel-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .msel-empty{padding:10px 9px;color:var(--muted);font-size:12px;}
-
-  .datemode{
-    display:flex;
-    gap:18px;
-    margin:-6px 0 16px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    color:var(--muted);
-  }
-  .datemode .modeopt{
-    display:flex;
-    align-items:center;
-    gap:5px;
-    cursor:pointer;
-  }
-  .datemode input[type=radio]{accent-color:var(--rust);cursor:pointer;}
-
-  .activefilters{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    margin-bottom:16px;
-    min-height:20px;
-  }
-  .chip{
-    background:#eee7d3;
-    border:1px solid var(--line);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    padding:4px 9px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  .chip button{
-    background:none;border:none;cursor:pointer;
-    color:var(--rust);font-weight:700;font-size:12px;
-    padding:0;line-height:1;
-  }
-  .clearall{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--rust);
-    background:none;border:none;cursor:pointer;
-    text-decoration:underline;
-  }
-
-  .summary{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:1px;
-    background:var(--line);
-    border:1px solid var(--line);
-    margin-bottom:22px;
-  }
-  .summary .cell{
-    background:var(--panel);
-    padding:16px 18px;
-  }
-  .summary .cell .label{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10px;
-    text-transform:uppercase;
-    letter-spacing:0.07em;
-    color:var(--muted);
-    margin-bottom:6px;
-  }
-  .summary .cell .value{
-    font-size:26px;
-    font-weight:600;
-    color:var(--navy-deep);
-  }
-  .summary .cell.hero .value{color:var(--rust);}
-
-  .resultbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:8px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--muted);
-  }
-
-  table{
-    width:100%;
-    border-collapse:collapse;
-    background:var(--panel);
-    border:1px solid var(--line);
-  }
-  thead th{
-    text-align:left;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10.5px;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    color:var(--muted);
-    padding:10px 12px;
-    border-bottom:2px solid var(--navy);
-    position:sticky;top:0;background:var(--panel);
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  thead th:hover{color:var(--navy);}
-  tbody td{
-    padding:9px 12px;
-    border-bottom:1px solid var(--line);
-    font-size:13px;
-  }
-  tbody tr:hover{background:#f9f7f0;}
-  tbody td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
-  .tablewrap{max-height:480px;overflow:auto;border:1px solid var(--line);border-top:none;}
-  .tablewrap table{border:none;}
-
-  .empty{
-    padding:50px 20px;
-    text-align:center;
-    color:var(--muted);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-  }
-
-  footer.note{
-    margin-top:26px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--muted);
-    border-top:1px solid var(--line);
-    padding-top:12px;
-  }
-
-  /* Mobile */
-  @media (max-width:760px){
-    header.top{padding:14px 16px;flex-direction:column;align-items:flex-start;gap:2px;}
-    .wrap{padding:16px 14px 50px;}
-    .toolbar{flex-direction:column;align-items:flex-start;}
-    .filters{grid-template-columns:1fr 1fr;}
-    .filters .daterange{grid-column:span 2;flex-direction:column;}
-    .datemode{gap:16px;margin-top:-2px;}
-    .summary{grid-template-columns:1fr 1fr;}
-    thead{display:none;}
-    tbody tr{
-      display:block;
-      border-bottom:6px solid var(--paper);
-      padding:8px 12px 10px;
-    }
-    tbody td{
-      display:flex;
-      justify-content:space-between;
-      border-bottom:1px dashed var(--line);
-      padding:6px 0;
-      font-size:12.5px;
-    }
-    tbody td:last-child{border-bottom:none;}
-    tbody td::before{
-      content:attr(data-label);
-      font-family:'IBM Plex Mono',monospace;
-      font-size:10px;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-right:10px;
-    }
-    tbody td.num{text-align:right;}
-    .tablewrap{max-height:none;}
-  }
+:root{--ink:#151a24;--paper:#f6f4ee;--panel:#fff;--line:#dfdac9;--navy:#1f3a5f;--navy-deep:#12233b;--rust:#a8582f;--muted:#6b7280;--radius:2px;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Iowan Old Style','Georgia',serif;-webkit-font-smoothing:antialiased;}
+header.top{background:var(--navy-deep);color:#f1ede0;padding:18px 28px;display:flex;align-items:baseline;justify-content:space-between;border-bottom:3px solid var(--rust);}
+header.top .brand{font-size:20px;letter-spacing:.02em;font-weight:600;}
+header.top .brand span{color:#c98a63;}
+header.top .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa7b8;}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 24px 60px;}
+.toolbar{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:14px;}
+.toolbar h1{font-size:26px;margin:0 0 4px;font-weight:500;}
+.toolbar .meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+.filecontrols{display:flex;gap:10px;align-items:center;}
+.btn{background:var(--navy);color:#fff;border:none;padding:9px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;border-radius:var(--radius);letter-spacing:.02em;}
+.btn:hover{background:var(--navy-deep);}
+.btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--navy);}
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.filters .daterange{grid-column:span 2;display:flex;gap:8px;}
+.field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;}
+input[type=date]{width:100%;padding:8px 9px;border:1px solid var(--line);background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);border-radius:var(--radius);}
+input[type=date]:focus{outline:2px solid var(--rust);outline-offset:1px;}
+.msel{position:relative;}
+.msel-btn{width:100%;text-align:left;padding:8px 30px 8px 9px;border:1px solid var(--line);background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);border-radius:var(--radius);cursor:pointer;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.msel-btn:after{content:"▾";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);}
+.msel-btn.active{border-color:var(--rust);color:var(--navy-deep);font-weight:600;}
+.msel-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 6px 18px rgba(0,0,0,.12);z-index:60;max-height:260px;overflow-y:auto;}
+.msel-panel.open{display:block;}
+.msel-search{width:100%;border:none;border-bottom:1px solid var(--line);padding:8px 9px;font-family:'IBM Plex Mono',monospace;font-size:12px;position:sticky;top:0;background:var(--panel);}
+.msel-search:focus{outline:none;}
+.msel-actions{display:flex;justify-content:space-between;padding:6px 9px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:10.5px;}
+.msel-actions button{background:none;border:none;color:var(--navy);cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;font-size:inherit;}
+.msel-item{display:flex;align-items:center;gap:8px;padding:7px 9px;font-size:12.5px;cursor:pointer;}
+.msel-item:hover{background:var(--paper);}
+.msel-item input{accent-color:var(--rust);cursor:pointer;flex:none;}
+.msel-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.msel-empty{padding:10px 9px;color:var(--muted);font-size:12px;}
+.datemode{display:flex;gap:18px;margin:-6px 0 16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
+.datemode .modeopt{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.datemode input[type=radio]{accent-color:var(--rust);cursor:pointer;}
+.activefilters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;min-height:20px;}
+.chip{background:#eee7d3;border:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 9px;border-radius:12px;display:flex;align-items:center;gap:6px;}
+.chip button{background:none;border:none;cursor:pointer;color:var(--rust);font-weight:700;font-size:12px;padding:0;line-height:1;}
+.clearall{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--rust);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:22px;}
+.summary .cell{background:var(--panel);padding:16px 18px;}
+.summary .cell .label{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
+.summary .cell .value{font-size:26px;font-weight:600;color:var(--navy-deep);}
+.summary .cell.hero .value{color:var(--rust);}
+.resultbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);}
+thead th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--navy);position:sticky;top:0;background:var(--panel);cursor:pointer;white-space:nowrap;}
+thead th:hover{color:var(--navy);}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+tbody tr:hover{background:#f9f7f0;}
+tbody td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+.tablewrap{max-height:480px;overflow:auto;border:1px solid var(--line);border-top:none;}
+.tablewrap table{border:none;}
+.empty{padding:50px 20px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+footer.note{margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;}
+@media (max-width:760px){
+header.top{padding:14px 16px;flex-direction:column;align-items:flex-start;gap:2px;}
+.wrap{padding:16px 14px 50px;}
+.toolbar{flex-direction:column;align-items:flex-start;}
+.filters{grid-template-columns:1fr 1fr;}
+.filters .daterange{grid-column:span 2;flex-direction:column;}
+.datemode{gap:16px;margin-top:-2px;}
+.summary{grid-template-columns:1fr 1fr;}
+thead{display:none;}
+tbody tr{display:block;border-bottom:6px solid var(--paper);padding:8px 12px 10px;}
+tbody td{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:6px 0;font-size:12.5px;}
+tbody td:last-child{border-bottom:none;}
+tbody td::before{content:attr(data-label);font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--muted);margin-right:10px;}
+.tablewrap{max-height:none;}
+}
 </style>
 </head>
 <body>
-
 <header class="top">
-  <div>
-    <div class="brand">PI <span>EXPORTS</span></div>
-    <div class="sub">INVENTORY CONTROL — LIVE VIEW</div>
-  </div>
+  <div><div class="brand">PI <span>EXPORTS</span></div><div class="sub">INVENTORY CONTROL — LIVE VIEW</div></div>
   <div class="sub" id="lastload">Loading data…</div>
 </header>
-
 <div class="wrap">
-
   <div class="toolbar">
-    <div>
-      <h1>Stock Dashboard</h1>
-      <div class="meta" id="rowmeta">— rows loaded</div>
-    </div>
+    <div><h1>Stock Dashboard</h1><div class="meta" id="rowmeta">— rows loaded</div></div>
     <div class="filecontrols">
       <button class="btn" id="refreshBtn">Refresh data</button>
       <button class="btn ghost" id="resetBtn">Reset filters</button>
     </div>
   </div>
-
   <div class="filters">
-    <div class="field">
-      <label>Source File</label>
-      <div class="msel" id="msel_source"></div>
-    </div>
-    <div class="field">
-      <label>Sheet / Tab</label>
-      <div class="msel" id="msel_sheet"></div>
-    </div>
-    <div class="field">
-      <label>Category</label>
-      <div class="msel" id="msel_category"></div>
-    </div>
-    <div class="field">
-      <label>Product</label>
-      <div class="msel" id="msel_product"></div>
-    </div>
-    <div class="field">
-      <label>Size</label>
-      <div class="msel" id="msel_size"></div>
-    </div>
+    <div class="field"><label>Year</label><div class="msel" id="msel_year"></div></div>
+    <div class="field"><label>Source File</label><div class="msel" id="msel_source"></div></div>
+    <div class="field"><label>Sheet / Tab</label><div class="msel" id="msel_sheet"></div></div>
+    <div class="field"><label>Category</label><div class="msel" id="msel_category"></div></div>
+    <div class="field"><label>Product</label><div class="msel" id="msel_product"></div></div>
+    <div class="field"><label>Size</label><div class="msel" id="msel_size"></div></div>
     <div class="field daterange" id="dateBlock">
-      <div style="flex:1">
-        <label>Date</label>
-        <input type="date" id="f_datefrom">
-      </div>
-      <div style="flex:1" id="dateToWrap">
-        <label>Date to</label>
-        <input type="date" id="f_dateto">
-      </div>
+      <div style="flex:1"><label>Date</label><input type="date" id="f_datefrom"></div>
+      <div style="flex:1" id="dateToWrap"><label>Date to</label><input type="date" id="f_dateto"></div>
     </div>
   </div>
-
   <div class="datemode" id="dateModeRow">
     <label class="modeopt"><input type="radio" name="datemode" value="single" checked> Single date</label>
     <label class="modeopt"><input type="radio" name="datemode" value="range"> Date range</label>
   </div>
-
   <div class="activefilters" id="activeChips"></div>
-
   <div class="summary">
-    <div class="cell hero">
-      <div class="label">Total Quantity</div>
-      <div class="value" id="s_qty">0</div>
-    </div>
-    <div class="cell">
-      <div class="label">Matching Rows</div>
-      <div class="value" id="s_rows">0</div>
-    </div>
-    <div class="cell">
-      <div class="label">Distinct Products</div>
-      <div class="value" id="s_products">0</div>
-    </div>
-    <div class="cell">
-      <div class="label">Date Span</div>
-      <div class="value" id="s_dates" style="font-size:15px;">—</div>
-    </div>
+    <div class="cell hero"><div class="label">Total Quantity</div><div class="value" id="s_qty">0</div></div>
+    <div class="cell"><div class="label">Matching Rows</div><div class="value" id="s_rows">0</div></div>
+    <div class="cell"><div class="label">Distinct Products</div><div class="value" id="s_products">0</div></div>
+    <div class="cell"><div class="label">Date Span</div><div class="value" id="s_dates" style="font-size:15px;">—</div></div>
   </div>
-
-  <div class="resultbar">
-    <span id="resultcount">— records</span>
-    <span>click a column header to sort</span>
-  </div>
-
+  <div class="resultbar"><span id="resultcount">— records</span><span>click a column header to sort</span></div>
   <div class="tablewrap">
     <table>
-      <thead>
-        <tr>
-          <th data-key="date">Date</th>
-          <th data-key="sheet">Sheet</th>
-          <th data-key="category">Category</th>
-          <th data-key="product">Product</th>
-          <th data-key="size">Size</th>
-          <th data-key="qty" class="num">Quantity</th>
-          <th data-key="source">Source File</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th data-key="date">Date</th><th data-key="sheet">Sheet</th><th data-key="category">Category</th>
+        <th data-key="product">Product</th><th data-key="size">Size</th><th data-key="qty" class="num">Quantity</th><th data-key="source">Source File</th>
+      </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
-
-  <footer class="note">
-    PI Exports — Inventory Dashboard. Data updates automatically from the source inventory file. Use "Refresh data" to pull the latest update.
-  </footer>
-
 </div>
 
 <script>
-// This dashboard loads live from the Google Sheet CSV link below.
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDd83YiQjFm70rbXQgaMzWH4eGlFZTucXkSc-wWZ3lAFVO0kYLyy6e3DS9YwzJlQ/pub?output=csv";
-// ─────────────────────────────────────────────────────────────────────────
+// One entry per YEAR TAB of the master workbook. In Google Sheets use
+// File > Share > Publish to web > "Entire document" > CSV, then for each tab
+// copy its link (…/pub?gid=<TAB_GID>&single=true&output=csv) into this list.
+// Add a new entry whenever a new year tab appears.
+const TAB_SOURCES = [
+  // {label:"2025", url:"https://docs.google.com/spreadsheets/d/e/<PUBLISH_ID>/pub?gid=<GID_2025>&single=true&output=csv"},
+  // {label:"2026", url:"https://docs.google.com/spreadsheets/d/e/<PUBLISH_ID>/pub?gid=<GID_2026>&single=true&output=csv"},
+  {label:"Old link (replace me)", url:"https://docs.google.com/spreadsheets/d/e/2PACX-1vTDd83YiQjFm70rbXQgaMzWH4eGlFZTucXkSc-wWZ3lAFVO0kYLyy6e3DS9YwzJlQ/pub?output=csv"},
+];
 
-let rows = []; // {date, sheet, category, product, size, qty, source}
+let rows = [];          // {date, year, sheet, category, product, size, so, qty, source}
+let sizeRank = {};      // size -> SizeOrder (from column H)
 let sortKey = null, sortDir = 1;
 
-function loadFromArray(arr){
-  rows = arr.map(r=>({
-    date: normDate(r[0]),
-    sheet: String(r[1]??"").trim(),
-    category: String(r[2]??"").trim(),
-    product: String(r[3]??"").trim(),
-    size: String(r[4]??"").trim(),
-    qty: Number(r[5])||0,
-    source: String(r[6]??"").trim()
-  })).filter(r=>r.sheet||r.product);
-}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function normDate(v){
-  if(v instanceof Date) return v.toISOString().slice(0,10);
-  if(typeof v === "number"){ // excel serial
-    const d = XLSX.SSF? XLSX.SSF.parse_date_code(v): null;
-    if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-  }
   const s = String(v||"").trim();
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
   return s;
 }
 
+function loadFromArray(arr){
+  rows = arr.map(r=>{
+    const date = normDate(r[0]);
+    const so = parseFloat(r[7]);
+    return {
+      date,
+      year: /^\d{4}/.test(date) ? date.slice(0,4) : "No date",
+      sheet: String(r[1]??"").trim(),
+      category: String(r[2]??"").trim(),
+      product: String(r[3]??"").trim(),
+      size: String(r[4]??"").trim(),
+      so: isNaN(so) ? 9999 : so,
+      qty: Number(r[5])||0,
+      source: String(r[6]??"").trim()
+    };
+  }).filter(r=>r.sheet||r.product);
+  sizeRank = {};
+  rows.forEach(r=>{ if(!(r.size in sizeRank) || r.so < sizeRank[r.size]) sizeRank[r.size] = r.so; });
+}
+
 function uniq(arr){ return [...new Set(arr.filter(Boolean))].sort(); }
 
 const FIELDS = [
+  {key:"year", label:"Year", allLabel:"All years"},
   {key:"source", label:"Source File", allLabel:"All files"},
   {key:"sheet", label:"Sheet / Tab", allLabel:"All sheets"},
   {key:"category", label:"Category", allLabel:"All categories"},
   {key:"product", label:"Product", allLabel:"All products"},
   {key:"size", label:"Size", allLabel:"All sizes"},
 ];
-const selections = {source:new Set(), sheet:new Set(), category:new Set(), product:new Set(), size:new Set()};
+const selections = {year:new Set(), source:new Set(), sheet:new Set(), category:new Set(), product:new Set(), size:new Set()};
 
 function buildMultiSelect(field){
   const wrap = document.getElementById("msel_"+field.key);
@@ -540,17 +196,16 @@ function buildMultiSelect(field){
         <button type="button" id="msel_${field.key}_clear">Clear</button>
       </div>
       <div class="msel-list" id="msel_${field.key}_list"></div>
-    </div>
-  `;
+    </div>`;
   const btn = document.getElementById(`msel_${field.key}_btn`);
   const panel = document.getElementById(`msel_${field.key}_panel`);
-  btn.addEventListener("click", (e)=>{
+  btn.addEventListener("click", e=>{
     e.stopPropagation();
     const wasOpen = panel.classList.contains("open");
     document.querySelectorAll(".msel-panel.open").forEach(p=>p.classList.remove("open"));
     if(!wasOpen) panel.classList.add("open");
   });
-  document.getElementById(`msel_${field.key}_search`).addEventListener("input", (e)=>{
+  document.getElementById(`msel_${field.key}_search`).addEventListener("input", e=>{
     const q = e.target.value.toLowerCase();
     document.querySelectorAll(`#msel_${field.key}_list .msel-item`).forEach(item=>{
       item.style.display = item.dataset.val.toLowerCase().includes(q) ? "flex" : "none";
@@ -567,7 +222,7 @@ function buildMultiSelect(field){
     selections[field.key].clear();
     render();
   });
-  panel.addEventListener("click", (e)=>{ e.stopPropagation(); });
+  panel.addEventListener("click", e=>e.stopPropagation());
 }
 FIELDS.forEach(buildMultiSelect);
 document.addEventListener("click", ()=>{
@@ -579,18 +234,16 @@ function populateMultiSelect(field, values){
   const list = document.getElementById(`msel_${key}_list`);
   const btn = document.getElementById(`msel_${key}_btn`);
   const sel = selections[key];
-  // drop any selected values no longer available given other active filters
   [...sel].forEach(v=>{ if(!values.includes(v)) sel.delete(v); });
 
   if(values.length===0){
     list.innerHTML = `<div class="msel-empty">No options available</div>`;
   } else {
     list.innerHTML = values.map(v=>`
-      <label class="msel-item" data-val="${v}">
-        <input type="checkbox" value="${v}" ${sel.has(v)?"checked":""}>
-        <span>${v}</span>
-      </label>
-    `).join("");
+      <label class="msel-item" data-val="${esc(v)}">
+        <input type="checkbox" value="${esc(v)}" ${sel.has(v)?"checked":""}>
+        <span>${esc(v)}</span>
+      </label>`).join("");
     list.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       cb.addEventListener("change", ()=>{
         if(cb.checked) sel.add(cb.value); else sel.delete(cb.value);
@@ -599,57 +252,37 @@ function populateMultiSelect(field, values){
     });
   }
 
-  if(sel.size===0){
-    btn.textContent = field.allLabel;
-    btn.classList.remove("active");
-  } else if(sel.size===1){
-    btn.textContent = [...sel][0];
-    btn.classList.add("active");
-  } else {
-    btn.textContent = `${sel.size} selected`;
-    btn.classList.add("active");
-  }
+  if(sel.size===0){ btn.textContent = field.allLabel; btn.classList.remove("active"); }
+  else if(sel.size===1){ btn.textContent = [...sel][0]; btn.classList.add("active"); }
+  else { btn.textContent = `${sel.size} selected`; btn.classList.add("active"); }
 }
 
-function getDateMode(){
-  return document.querySelector('input[name="datemode"]:checked').value;
-}
+function getDateMode(){ return document.querySelector('input[name="datemode"]:checked').value; }
 
 function getFilters(){
   const mode = getDateMode();
   const single = document.getElementById("f_datefrom").value;
-  return {
-    source: [...selections.source],
-    sheet: [...selections.sheet],
-    category: [...selections.category],
-    product: [...selections.product],
-    size: [...selections.size],
-    from: mode==="single" ? single : single,
+  const f = {
+    from: single,
     to: mode==="single" ? single : document.getElementById("f_dateto").value,
-    mode: mode
+    mode
   };
+  FIELDS.forEach(field=>{ f[field.key] = [...selections[field.key]]; });
+  return f;
 }
 
 function updateDateModeUI(){
   const mode = getDateMode();
-  const toWrap = document.getElementById("dateToWrap");
-  const fromLabel = document.querySelector('#dateBlock label');
-  if(mode==="single"){
-    toWrap.style.display = "none";
-    fromLabel.textContent = "Date";
-  } else {
-    toWrap.style.display = "block";
-    fromLabel.textContent = "Date from";
-  }
+  document.getElementById("dateToWrap").style.display = mode==="single" ? "none" : "block";
+  document.querySelector('#dateBlock label').textContent = mode==="single" ? "Date" : "Date from";
 }
 
 function applyFilters(rowset, f, except){
   return rowset.filter(r=>{
-    if(except!=="source" && f.source.length && !f.source.includes(r.source)) return false;
-    if(except!=="sheet" && f.sheet.length && !f.sheet.includes(r.sheet)) return false;
-    if(except!=="category" && f.category.length && !f.category.includes(r.category)) return false;
-    if(except!=="product" && f.product.length && !f.product.includes(r.product)) return false;
-    if(except!=="size" && f.size.length && !f.size.includes(r.size)) return false;
+    for(const field of FIELDS){
+      const k = field.key;
+      if(except!==k && f[k].length && !f[k].includes(r[k])) return false;
+    }
     if(f.from && r.date < f.from) return false;
     if(f.to && r.date > f.to) return false;
     return true;
@@ -659,56 +292,41 @@ function applyFilters(rowset, f, except){
 function refreshDropdowns(){
   const f = getFilters();
   FIELDS.forEach(field=>{
-    const available = applyFilters(rows, f, field.key);
-    populateMultiSelect(field, uniq(available.map(r=>r[field.key])));
+    const vals = uniq(applyFilters(rows, f, field.key).map(r=>r[field.key]));
+    // sizes follow the SizeOrder column (XS, S, M, L, XL …) instead of A–Z
+    if(field.key==="size") vals.sort((a,b)=>(sizeRank[a]??9999)-(sizeRank[b]??9999) || a.localeCompare(b));
+    populateMultiSelect(field, vals);
   });
 }
 
 function renderChips(f){
   const box = document.getElementById("activeChips");
   box.innerHTML = "";
-  const labels = {source:"File",sheet:"Sheet",category:"Category",product:"Product",size:"Size"};
   let any = false;
+  const addChip = (text, onRemove)=>{
+    any = true;
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `${esc(text)} <button>×</button>`;
+    chip.querySelector("button").onclick = onRemove;
+    box.appendChild(chip);
+  };
 
   FIELDS.forEach(field=>{
     f[field.key].forEach(v=>{
-      any = true;
-      const chip = document.createElement("span");
-      chip.className = "chip";
-      chip.innerHTML = `${labels[field.key]}: ${v} <button>×</button>`;
-      chip.querySelector("button").onclick = ()=>{
-        selections[field.key].delete(v);
-        render();
-      };
-      box.appendChild(chip);
+      addChip(`${field.label}: ${v}`, ()=>{ selections[field.key].delete(v); render(); });
     });
   });
-
   if(f.from){
-    any = true;
-    const label = f.mode==="single" ? "Date" : "From";
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.innerHTML = `${label}: ${f.from} <button>×</button>`;
-    chip.querySelector("button").onclick = ()=>{
+    addChip(`${f.mode==="single" ? "Date" : "From"}: ${f.from}`, ()=>{
       document.getElementById("f_datefrom").value = "";
       if(f.mode==="single") document.getElementById("f_dateto").value = "";
       render();
-    };
-    box.appendChild(chip);
+    });
   }
   if(f.mode==="range" && f.to){
-    any = true;
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.innerHTML = `To: ${f.to} <button>×</button>`;
-    chip.querySelector("button").onclick = ()=>{
-      document.getElementById("f_dateto").value = "";
-      render();
-    };
-    box.appendChild(chip);
+    addChip(`To: ${f.to}`, ()=>{ document.getElementById("f_dateto").value = ""; render(); });
   }
-
   if(any){
     const clear = document.createElement("button");
     clear.className = "clearall";
@@ -727,6 +345,7 @@ function render(){
     result = [...result].sort((a,b)=>{
       let av=a[sortKey], bv=b[sortKey];
       if(sortKey==="qty"){ av=Number(av); bv=Number(bv); }
+      if(sortKey==="size"){ av=a.so; bv=b.so; }
       if(av<bv) return -1*sortDir;
       if(av>bv) return 1*sortDir;
       return 0;
@@ -735,13 +354,11 @@ function render(){
 
   renderChips(f);
 
-  const totalQty = result.reduce((s,r)=>s+r.qty,0);
-  document.getElementById("s_qty").textContent = totalQty.toLocaleString();
+  document.getElementById("s_qty").textContent = result.reduce((s,r)=>s+r.qty,0).toLocaleString();
   document.getElementById("s_rows").textContent = result.length.toLocaleString();
   document.getElementById("s_products").textContent = uniq(result.map(r=>r.product)).length;
   const dates = result.map(r=>r.date).filter(Boolean).sort();
   document.getElementById("s_dates").textContent = dates.length ? (dates[0]===dates[dates.length-1] ? dates[0] : `${dates[0]} → ${dates[dates.length-1]}`) : "—";
-
   document.getElementById("resultcount").textContent = `${result.length.toLocaleString()} record${result.length===1?'':'s'}`;
 
   const tbody = document.getElementById("tbody");
@@ -749,20 +366,17 @@ function render(){
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No rows match this filter combination. Loosen a filter to see results.</div></td></tr>`;
     return;
   }
-
   const MAX_DISPLAY_ROWS = 500;
-  const toShow = result.slice(0, MAX_DISPLAY_ROWS);
-  let html = toShow.map(r=>`
+  let html = result.slice(0, MAX_DISPLAY_ROWS).map(r=>`
     <tr>
-      <td data-label="Date">${r.date}</td>
-      <td data-label="Sheet">${r.sheet}</td>
-      <td data-label="Category">${r.category}</td>
-      <td data-label="Product">${r.product}</td>
-      <td data-label="Size">${r.size}</td>
+      <td data-label="Date">${esc(r.date)}</td>
+      <td data-label="Sheet">${esc(r.sheet)}</td>
+      <td data-label="Category">${esc(r.category)}</td>
+      <td data-label="Product">${esc(r.product)}</td>
+      <td data-label="Size">${esc(r.size)}</td>
       <td data-label="Quantity" class="num">${r.qty.toLocaleString()}</td>
-      <td data-label="Source File">${r.source}</td>
-    </tr>
-  `).join("");
+      <td data-label="Source File">${esc(r.source)}</td>
+    </tr>`).join("");
   if(result.length > MAX_DISPLAY_ROWS){
     html += `<tr><td colspan="7"><div class="empty">Showing first ${MAX_DISPLAY_ROWS.toLocaleString()} of ${result.length.toLocaleString()} matching rows. The totals above (quantity, record count) already reflect ALL matching rows — narrow the filters further to see the full row list.</div></td></tr>`;
   }
@@ -785,44 +399,45 @@ document.querySelectorAll("thead th").forEach(th=>{
     render();
   });
 });
-
-["f_datefrom","f_dateto"].forEach(id=>{
-  document.getElementById(id).addEventListener("change", render);
-});
-document.getElementById("refreshBtn").addEventListener("click", ()=>{
-  loadFromCSVUrl(SHEET_CSV_URL);
-});
+["f_datefrom","f_dateto"].forEach(id=>document.getElementById(id).addEventListener("change", render));
+document.getElementById("refreshBtn").addEventListener("click", loadAllTabs);
 document.querySelectorAll('input[name="datemode"]').forEach(r=>{
   r.addEventListener("change", ()=>{ updateDateModeUI(); render(); });
 });
 document.getElementById("resetBtn").addEventListener("click", resetFilters);
 updateDateModeUI();
 
-function loadFromCSVUrl(url){
-  document.getElementById("lastload").textContent = "Loading data…";
-  Papa.parse(url, {
-    download: true,
-    complete: function(results){
-      const body = results.data.slice(1).filter(r=>r && r.length>1);
-      loadFromArray(body);
-      document.getElementById("lastload").textContent = `Updated ${new Date().toLocaleString()}`;
-      document.getElementById("rowmeta").textContent = `${rows.length.toLocaleString()} rows loaded`;
-      resetFilters();
-    },
-    error: function(){
-      document.getElementById("lastload").textContent = "Unable to load data — check your connection and try Refresh, or contact support.";
+// Loads every tab in TAB_SOURCES in parallel and merges them.
+function loadAllTabs(){
+  const status = document.getElementById("lastload");
+  status.textContent = "Loading data…";
+  Promise.all(TAB_SOURCES.map(src=>new Promise(resolve=>{
+    Papa.parse(src.url, {
+      download: true,
+      complete: res => resolve({src, data: res.data.slice(1).filter(r=>r && r.length>1)}),
+      error: () => resolve({src, data: null})
+    });
+  }))).then(results=>{
+    const ok = results.filter(r=>r.data);
+    const failed = results.filter(r=>!r.data);
+    if(!ok.length){
+      status.textContent = "Unable to load data — check your connection and try Refresh, or contact support.";
       document.getElementById("rowmeta").textContent = "No data loaded";
       rows = [];
       render();
+      return;
     }
+    loadFromArray(ok.flatMap(r=>r.data));
+    status.textContent = `Updated ${new Date().toLocaleString()}` +
+      (failed.length ? ` — WARNING: ${failed.length} of ${results.length} tab(s) failed to load: ${failed.map(r=>r.src.label).join(", ")}` : "");
+    // per-tab counts so you can check them against the workbook
+    document.getElementById("rowmeta").textContent =
+      `${rows.length.toLocaleString()} rows loaded (` + ok.map(r=>`${r.src.label}: ${r.data.length.toLocaleString()}`).join(" · ") + `)`;
+    resetFilters();
   });
 }
 
-// init
-document.getElementById("lastload").textContent = "Loading data…";
-loadFromCSVUrl(SHEET_CSV_URL);
-
+loadAllTabs();
 </script>
-
 </body>
 </html>
